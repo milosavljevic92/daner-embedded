@@ -1,0 +1,283 @@
+define OSC 16
+include "HPWM10_L.pbp"
+include "ALLDIGITAL.pbp"
+
+#CONFIG
+    CONFIG FOSC = INTIO67
+    CONFIG PLLCFG = OFF
+    CONFIG PRICLKEN = ON
+    CONFIG FCMEN = OFF
+    CONFIG IESO = OFF
+    CONFIG PWRTEN = ON
+    CONFIG BOREN = OFF
+    CONFIG BORV = 285
+    CONFIG WDTEN = OFF
+    CONFIG WDTPS = 32768
+    CONFIG CCP2MX = PORTB3
+    CONFIG PBADEN = OFF
+    CONFIG CCP3MX = PORTC6
+    CONFIG HFOFST = ON
+    CONFIG T3CMX = PORTC0
+    CONFIG P2BMX = PORTC0
+    CONFIG MCLRE = INTMCLR
+    CONFIG STVREN = ON
+    CONFIG LVP = OFF
+    CONFIG XINST = OFF
+    CONFIG CP0 = ON
+    CONFIG CP1 = ON
+    CONFIG CP2 = ON
+    CONFIG CP3 = ON
+    CONFIG CPB = ON
+    CONFIG CPD = OFF
+    CONFIG WRT0 = OFF
+    CONFIG WRT1 = OFF
+    CONFIG WRT2 = OFF
+    CONFIG WRT3 = OFF
+    CONFIG WRTC = OFF
+    CONFIG WRTB = OFF
+    CONFIG WRTD = OFF
+    CONFIG EBTR0 = OFF
+    CONFIG EBTR1 = OFF
+    CONFIG EBTR2 = OFF
+    CONFIG EBTR3 = OFF
+    CONFIG EBTRB = OFF
+#ENDCONFIG
+
+DEFINE LCD_DREG PORTA 
+DEFINE LCD_DBIT 0
+DEFINE LCD_RSREG PORTA
+DEFINE LCD_RSBIT 5 
+DEFINE LCD_EREG PORTA
+DEFINE LCD_EBIT 4 
+DEFINE LCD_BITS 4 
+DEFINE LCD_LINE 2
+DEFINE I2C_SCLOUT 1
+DEFINE I2C_SLOW 1
+define NO_CLRWDT 1
+
+INTCON2.7 = 0 
+WPUB = %11110111
+OSCCON  = %1111000
+OSCCON2 = %0000000
+OSCTUNE = %10000000
+T1CON = %00000111
+ANSELA = 0
+ANSELB = 0
+ANSELC = %000010
+TRISC = 255
+TRISA = 255
+TRISB = 255
+pause 200
+RTC             con %10100010
+EPROM           CON %10100000
+LM75            CON %10010001
+Strelica        con 126 
+PauzaZaTaster   con 100
+
+DEFINE I2C_SDA PORTC,0 
+DEFINE I2C_SCL PORTC,1 
+
+symbol BCKLIGHT        = PORTC.3
+symbol SDA             = PORTC.0
+symbol SCL             = PORTC.1
+symbol RELEJ1          = PORTC.4
+symbol RELEJ2          = PORTC.5
+symbol TASTLEVO        = PORTB.1
+symbol TASTDESNO       = PORTB.4
+symbol TASTGORE        = PORTB.6
+symbol TASTDOLE        = PORTB.5
+symbol TASTOK          = PORTB.2
+symbol TASTODRZAVANJE  = PORTB.7
+
+low bcklight
+low relej1
+low relej2
+LOW portc.6
+low portb.3
+low portb.0
+low portc.2
+input tastlevo
+input tastdesno
+input tastdole
+input tastgore
+input tastodrzavanje
+input tastok
+
+displej                 var byte[7]
+Memorija                var byte[75]
+RelejiMemorija          var byte[17] 
+NovoStanjeDesno         var bit
+NovoStanjeLevo          var bit
+NovoStanjeGore          var bit
+NovoStanjeDole          var bit
+NovoStanjeOk            var bit
+NovoStanjeOdrzavanje    var bit
+StaroStanjeDesno        var bit       
+StaroStanjeLevo         var bit      
+StaroStanjeGore         var bit         
+StaroStanjeDole         var bit         
+StaroStanjeOk           var bit           
+StaroStanjeOdrzavanje   var bit 
+gore                    var bit
+dole                    var bit
+levo                    var bit
+desno                   var bit
+ok                      var bit
+odrzavanje              var bit 
+Pritisnuto              var bit
+x                       var byte
+i                       var byte 
+OsvetljenjeOdrzavanje   var byte
+DecSat                  var byte
+DecMin                  var byte
+Rkanal1                 var byte  
+Rkanal2                 var byte  
+Rkanal3                 var byte  
+Rkanal4                 var byte 
+Pozicija                var byte 
+DecSat1                 var byte 
+DecMin1                 var byte 
+DecSec                  var byte
+Room                    var bit
+
+Temperatura             var byte
+Seconds                 var byte
+Minutes                 var byte
+Hours                   var byte
+OdrzavanjeJacina        var byte 
+Days                    var byte
+Years                   var byte
+Month                   var byte
+Temp                    VAR word
+NovostanjeRTC           var byte
+StarostanjeRTC          var byte
+
+TMinuta                 var word
+
+DutyCycleL1             var long
+DutyCycleL2             var long
+DutyCycleL3             var long
+DutyCycleL4             var long
+
+STKanal1                var long
+STKanal2                var long
+STKanal3                var long
+STKanal4                var long
+
+Frequency               var word
+
+Kanal1                  var byte
+Kanal2                  var byte
+Kanal3                  var byte
+Kanal4                  var byte
+
+BezTastera              var word
+
+DveTacke                var byte
+
+PMinuta                 var word
+KMinuta                 var word
+
+NoviMinut               var byte
+MinutPocetak            var byte
+MinutKraj               var byte
+SatPocetak              var byte
+SatKraj                 var byte
+OsvPocetak              var byte
+OsvKraj                 var byte
+PocetnaAdresaJezika     var word
+y                       var byte
+JacinaOsvetljenja1      var byte
+JacinaOsvetljenja2      var byte
+RtcCnt                  var byte
+BrojKanala              var byte
+ModDanNoc               var bit
+Prekidac                var bit
+VremePrekidaca          var bit
+TemperaturaIzEproma     var word
+AutomatskoAkvarijum     var bit
+AutomatskoSoba          var bit
+OdrzavanjeMod           var bit 
+Soba                    var word
+Akvarijum               var word
+DecSatglavni            var byte
+DecMinutGlavni          var byte
+DecSatPrikaz            var byte
+DecMinutPrikaz          var byte
+LeviBrojac              var byte
+DesniBrojac             var byte
+smece var word
+MaliBit var bit
+CLEAR
+Frequency               = 30000
+starostanjeDesno        = 1
+starostanjelevo         = 1 
+starostanjegore         = 1 
+starostanjedole         = 1 
+StaroStanjeOk           = 1         
+StaroStanjeOdrzavanje   = 1  
+odrzavanjemod = 0 
+desnibrojac = 1
+BCKLIGHT = 1 
+malibit = 1
+I2Cwrite  sda, scl, lm75,1,[%00000000]
+pause 20
+gosub UpisiVreme
+ Frequency = 30000
+
+    DutyCycleL1 = 512
+    DutyCycleL2 = 512
+    DutyCycleL3 = 512
+    DutyCycleL4 = 512
+    
+    @ HPWM10 4, _DutyCycleL4, _Frequency
+    @ HPWM10 3, _DutyCycleL3, _Frequency
+    @ HPWM10 2, _DutyCycleL2, _Frequency
+    @ HPWM10 1, _DutyCycleL1, _Frequency
+Main:
+     if  tastlevo = 0 then 
+        pause 100
+        desnibrojac = desnibrojac + 1 
+     endif
+    Gosub UzmiVreme
+    Lcdout $fe, 2 ,"Vreme > ",dec2 DecSatglavni,":",dec2 DecMinutGlavni,":",dec2 Decsec
+    lcdout $fe,$c0,dec3 temperatura, " ",desnibrojac," ",dec3 desnibrojac, "              "
+    gosub MeriTemperaturu
+pause 50
+Goto Main
+
+MeriTemperaturu:
+
+
+i2cread sda, scl, lm75,0,[temperatura]
+
+pause 20
+i2cread sda, scl, lm75,0,[smece]
+return 
+
+return
+
+UpisiVreme:                                
+    Seconds        = $00
+    Minutes        = $00
+    Hours          = $00
+    Days           = $01
+    Years          = $01
+    Month          = $01
+    
+    I2cwrite sda,scl,rtc,$02,[seconds,minutes,hours,days,$02,month,years]
+    PAUSE 10 
+return 
+
+UzmiVreme:
+
+
+    i2cread sda,scl,rtc,$02,[seconds,minutes,hours]
+    pause 10
+    minutes.7=0:hours.7=0:hours.6=0
+    DecMinutGlavni = ((minutes  & %11110000)>>4)  * 10 + (minutes & %00001111)
+    decsatglavni = ((Hours & %11110000)>>4)  * 10 + (hours & %00001111)
+    decsec = ((Seconds  & %11110000)>>4)  * 10 + (seconds  & %00001111)
+    
+   
+return

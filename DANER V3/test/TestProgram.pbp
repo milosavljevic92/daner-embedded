@@ -1,0 +1,178 @@
+
+define OSC 16
+#CONFIG
+  CONFIG HFOFST   = ON
+    CONFIG FOSC     = INTIO67
+    CONFIG PLLCFG   = OFF
+    CONFIG IESO     = OFF
+    CONFIG PWRTEN   = OFF
+    CONFIG BOREN    = OFF
+    CONFIG WDTEN    = OFF
+    CONFIG MCLRE    = INTMCLR
+    CONFIG XINST    = OFF
+    CONFIG CCP2MX   = PORTB3
+    CONFIG T3CMX    = PORTB5
+    CONFIG PBADEN   = OFF 
+  
+#ENDCONFIG
+
+include "HPWM10_L.pbp"
+
+
+DEFINE LCD_DREG PORTA 
+DEFINE LCD_DBIT 0
+DEFINE LCD_RSREG PORTA
+DEFINE LCD_RSBIT 5 
+DEFINE LCD_EREG PORTA
+DEFINE LCD_EBIT 4 
+DEFINE LCD_BITS 4 
+DEFINE LCD_LINE 2
+
+DEFINE I2C_SCLOUT 1
+
+OSCCON  = %1111000
+OSCCON2 = %0000000
+OSCTUNE = %10000000
+T1CON = %00000111
+ANSELA = 0
+ANSELB = 0
+ANSELC = %000010
+TRISC = %00001000
+TRISA = 0
+
+
+'TRISB = 0
+
+'I2C KONSTANTE
+RTC             con %10100010
+EPROM           CON %10100000
+LM75            CON %10010000
+LMcnt var byte            
+'PINOVI
+symbol BCKLIGHT        = PORTE.3
+symbol SDA             = PORTC.0
+symbol SCL             = PORTC.1
+symbol TASTATURA       = PORTC.3
+symbol RELEJ1          = PORTC.4
+symbol RELEJ2          = PORTC.5
+symbol TX              = PORTC.6
+symbol RX              = PORTC.7
+symbol BUZZER          = PORTB.1
+symbol COPER           = PORTB.2
+symbol SCLK            = PORTB.4
+symbol DIN             = PORTB.6
+symbol CS              = PORTB.7
+symbol tast1 = PORTA.6
+SYMBOL tast2 = PORTA.7
+
+input tast1
+input tast2
+'SMEROVI
+OUTPUT          BCKLIGHT
+INPUT           TASTATURA
+OUTPUT          RELEJ1
+OUTPUT          RELEJ2
+OUTPUT          BUZZER
+OUTPUT          COPER
+output          cs
+output          din 
+output          sclk 
+output tx 
+output rx
+  trisb=0
+'PROMENJIVE
+X               VAR BYTE
+Seconds         var byte
+Minutes         var byte
+Hours           var byte
+Days            var byte
+Years           var byte
+Month           var byte
+Temp            var byte
+Temperatura     var byte  
+Potenciometar   VAR word
+Frequency       VAR WORD
+DutyCycleL      VAR WORD
+Merenje         var word
+Frequency = 30000
+Adr             var word
+
+ poti var byte
+ poti = 0
+gosub UpisiVreme 
+i2cwrite sda,scl,lm75,01,[0,0,0]
+    DutyCycleL=512
+    '  DutyCycleL=(duty100*1024)/100
+    @ HPWM10 4, _DutyCycleL, _Frequency
+    @ HPWM10 3, _DutyCycleL, _Frequency
+    @ HPWM10 2, _DutyCycleL, _Frequency
+    @ HPWM10 1, _DutyCycleL, _Frequency
+Main:
+
+'FOR DutyCycleL = 0 TO 30
+
+'' gosub UzmiVreme
+' 'gosub OcitajTemperaturu
+'    IF tast1 = 0 then
+'        pause 100
+'        poti = poti  + 1
+'    endif
+    
+'    if tast2 = 0 then 
+'        pause 100 
+'        poti = poti - 1 
+'    endif
+   ' Lcdout $fe, 2 ,"Jacina: ",dec4 
+    '9v = 3
+    '6v = 4
+    '5v = 70
+    '4,5v = 87
+    '3v = 142
+    
+  
+ DutyCycleL = 512   
+
+'NEXT DutyCycleL
+ Potenciometar.lowbyte = 142
+    gosub PostaviPotenciometar
+Goto Main
+
+UpisiVreme:
+    Seconds        = $00
+    Minutes        = $00
+    Hours          = $00
+    Days           = $01
+    Years          = $01
+    Month          = $01
+    I2cwrite sda,scl,rtc,$02,[seconds,minutes,hours,days,$02,month,years]
+    PAUSE 10 
+return 
+
+UzmiVreme: 
+    i2cread sda,scl,rtc,$02,[seconds,minutes,hours,days,temp,month,years]
+    minutes.7=0:hours.7=0:hours.6=0:days.7=0:days.6=0:month.7=0:month.6=0:month.5=0
+return
+
+OcitajTemperaturu:
+    LMcnt=LMcnt+1
+    'if LMcnt=1 then
+     I2CREAD  sda, scl, lm75, 0,[Temperatura]
+return 
+
+PostaviPotenciometar:
+
+    
+    LOW CS
+    PAUSEUS 100
+    Potenciometar.9 = 0
+    SHIFTOUT din,sclk, 1,[Potenciometar\9]
+    
+    Potenciometar.9 = 1
+    
+    SHIFTOUT din,sclk,1,[Potenciometar\9]
+    HIGH CS
+return
+
+
+END
+

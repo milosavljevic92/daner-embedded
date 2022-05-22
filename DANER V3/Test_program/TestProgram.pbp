@@ -1,0 +1,283 @@
+define OSC 16
+include "HPWM10_L.pbp"
+include "ALLDIGITAL.pbp"
+
+#CONFIG
+    CONFIG FOSC = INTIO67
+    CONFIG PLLCFG = OFF
+    CONFIG PRICLKEN = ON
+    CONFIG FCMEN = OFF
+    CONFIG IESO = OFF
+    CONFIG PWRTEN = ON
+    CONFIG BOREN = OFF
+    CONFIG BORV = 285
+    CONFIG WDTEN = OFF
+    CONFIG WDTPS = 32768
+    CONFIG CCP2MX = PORTB3
+    CONFIG PBADEN = OFF
+    CONFIG CCP3MX = PORTC6
+    CONFIG HFOFST = ON
+    CONFIG T3CMX = PORTC0
+    CONFIG P2BMX = PORTC0
+    CONFIG MCLRE = INTMCLR
+    CONFIG STVREN = ON
+    CONFIG LVP = OFF
+    CONFIG XINST = OFF
+    CONFIG CP0 = ON
+    CONFIG CP1 = ON
+    CONFIG CP2 = ON
+    CONFIG CP3 = ON
+    CONFIG CPB = ON
+    CONFIG CPD = OFF
+    CONFIG WRT0 = OFF
+    CONFIG WRT1 = OFF
+    CONFIG WRT2 = OFF
+    CONFIG WRT3 = OFF
+    CONFIG WRTC = OFF
+    CONFIG WRTB = OFF
+    CONFIG WRTD = OFF
+    CONFIG EBTR0 = OFF
+    CONFIG EBTR1 = OFF
+    CONFIG EBTR2 = OFF
+    CONFIG EBTR3 = OFF
+    CONFIG EBTRB = OFF
+#ENDCONFIG
+
+DEFINE LCD_DREG PORTA 
+DEFINE LCD_DBIT 0
+DEFINE LCD_RSREG PORTA
+DEFINE LCD_RSBIT 5 
+DEFINE LCD_EREG PORTA
+DEFINE LCD_EBIT 4 
+DEFINE LCD_BITS 4 
+DEFINE LCD_LINE 2
+DEFINE I2C_SCLOUT 1
+DEFINE I2C_SLOW 1
+define NO_CLRWDT 1
+
+INTCON2.7 = 0 
+
+WPUB = %11110111
+
+OSCCON  = %1111000
+OSCCON2 = %0000000
+OSCTUNE = %10000000
+T1CON = %00000111
+ANSELA = 0
+ANSELB = 0
+ANSELC = %000010
+TRISC = 255
+TRISA = 255
+TRISB = 255
+
+LOW portc.6
+low portb.3
+low portb.0
+low portc.2
+
+pause 200
+RTC             con %10100010
+EPROM           CON %10100000
+LM75            CON %10010000
+Strelica        con 126 
+
+symbol BCKLIGHT        = PORTC.3
+symbol SDA             = PORTC.0
+symbol SCL             = PORTC.1
+symbol RELEJ1          = PORTC.4
+symbol RELEJ2          = PORTC.5
+
+symbol TASTLEVO        = PORTB.1
+symbol TASTOK          = PORTB.2
+symbol TASTDESNO       = PORTB.4
+symbol TASTGORE        = PORTB.6
+symbol TASTDOLE        = PORTB.5
+symbol TASTODRZAVANJE  = PORTB.7
+
+low bcklight
+low relej1
+low relej2
+
+input tastlevo
+input tastdesno
+input tastdole
+input tastgore
+input tastodrzavanje
+input tastok
+
+'PROMENJIVE
+X               VAR BYTE
+Seconds         var byte
+Minutes         var byte
+Hours           var byte
+Days            var byte
+Years           var byte
+Month           var byte
+Temp            var byte
+Temperatura     var byte  
+Potenciometar   VAR word
+Frequency       VAR WORD
+DutyCycleL1  VAR WORD
+DutyCycleL2 VAR WORD
+DutyCycleL3 VAR WORD
+DutyCycleL4 VAR WORD
+Merenje         var word
+gore                    var bit
+dole                    var bit
+levo                    var bit
+desno                   var bit
+ok                      var bit
+odrzavanje              var bit
+NovoStanjeDesno         var bit
+NovoStanjeLevo          var bit
+NovoStanjeGore          var bit
+NovoStanjeDole          var bit
+NovoStanjeOk            var bit
+NovoStanjeOdrzavanje    var bit
+StaroStanjeDesno        var bit       
+StaroStanjeLevo         var bit      
+StaroStanjeGore         var bit         
+StaroStanjeDole         var bit         
+StaroStanjeOk           var bit           
+StaroStanjeOdrzavanje   var bit 
+LMcnt                   var byte 
+LevoVar                 var byte
+DesnoVar                var byte
+GoreVar                 var byte
+DoleVar                 var byte
+OkVar                   var byte
+OdrzVar                 var byte
+  clear 
+
+Frequency = 30000
+gosub UpisiVreme 
+    DutyCycleL1 = 512
+    DutyCycleL2 = 512
+    DutyCycleL3 = 512
+    DutyCycleL4 = 512
+    
+    @ HPWM10 4, _DutyCycleL4, _Frequency
+    @ HPWM10 3, _DutyCycleL3, _Frequency
+    @ HPWM10 2, _DutyCycleL2, _Frequency
+    @ HPWM10 1, _DutyCycleL1, _Frequency
+relej1 = 0 
+relej2 = 0    
+BCKLIGHT = 1
+'pause 100
+'relej1 = 1 
+'relej2 = 1 
+'pause 500
+'relej1 = 0
+'relej2 = 0
+Main:
+gosub OcitajTastere
+  if ok = 1 then okvar = okvar + 1 
+  if levo = 1 then levovar = levovar + 1 
+  if desno = 1 then desnovar = desnovar + 1 
+  if gore  = 1 then gorevar = gorevar + 1 
+  if dole = 1 then dolevar = dolevar + 1
+  if odrzavanje = 1 then odrzvar = odrzvar + 1  
+
+  Lcdout $fe, 1,dec2 Levovar,dec2 okvar, dec2 desnovar, dec2 gorevar,dec2 dolevar,dec2 odrzvar
+  lcdout $fe,$c0, #tastlevo,#tastok,#tastdesno,#tastgore,#tastdole,#tastodrzavanje,hex2 hours,hex2 minutes ,hex2 seconds  
+    LMcnt = LMcnt + 1
+   if LMcnt = 10 then
+        toggle relej1
+        toggle relej2
+      
+'        'gosub OcitajTemperaturu
+        lmcnt = 0
+   endif 
+ gosub UzmiVreme
+   
+    pause 100
+
+Goto Main
+
+UpisiVreme:
+    Seconds        = $00
+    Minutes        = $00
+    Hours          = $00
+    Days           = $01
+    Years          = $01
+    Month          = $01
+    I2cwrite sda,scl,rtc,$02,[seconds,minutes,hours,days,$02,month,years]
+    PAUSE 10 
+return 
+
+UzmiVreme: 
+    PAUSE 50
+    i2cread sda,scl,rtc,$02,[seconds,minutes,hours,days,temp,month,years]
+    minutes.7=0:hours.7=0:hours.6=0:days.7=0:days.6=0:month.7=0:month.6=0:month.5=0
+return
+
+OcitajTemperaturu:
+    PAUSE 50
+    I2CREAD  sda, scl, lm75, 0,[Temperatura]
+return 
+
+OcitajTastere:
+    NovoStanjeDesno         =  tastdesno
+    NovoStanjeLevo          =  tastlevo
+    NovoStanjeGore          =  tastgore
+    NovoStanjeDole          =  tastdole
+    NovoStanjeOk            =  tastok
+    NovoStanjeOdrzavanje    =  tastodrzavanje
+    'dodati da kada se taster pukne ne izvršava komandu 
+    if novostanjegore < starostanjegore then 
+        gore = 1 
+    else
+        gore = 0 
+    ENDIF
+    
+    if novostanjedole < starostanjedole then 
+        dole = 1
+    else 
+        dole = 0
+    ENDIF
+    
+    if novostanjelevo < starostanjelevo then 
+        levo = 1
+    else
+        levo = 0
+    ENDIF
+    
+    if novostanjedesno < starostanjedesno then 
+        desno = 1
+    else
+        desno = 0
+    ENDIF
+    
+    if novostanjeOK < starostanjeok then 
+        ok = 1
+    else
+        ok = 0
+    ENDIF
+    
+    if novostanjeodrzavanje < starostanjeodrzavanje then 
+        odrzavanje = 1
+    else
+        odrzavanje = 0
+    ENDIF
+    
+    'if gore = 0 and dole = 0 and levo = 0 and desno = 0 and ok = 0 and odrzavanje = 0 then 
+       ' BezTastera  =  BezTastera + 1 
+    'e'lse
+       ' BezTastera = 0
+    'endif 
+    
+   ' if BezTastera < 3000 then 
+    '    bcklight  = 1
+    'else
+    '    bcklight  = 0
+    'endif
+    
+    StaroStanjeDesno        = NovoStanjeDesno        
+    StaroStanjeLevo         = NovoStanjeLevo      
+    StaroStanjeGore         = NovoStanjeGore          
+    StaroStanjeDole         = NovoStanjeDole         
+    StaroStanjeOk           = NovoStanjeOk           
+    StaroStanjeOdrzavanje   = NovoStanjeOdrzavanje    
+return
+END
+
